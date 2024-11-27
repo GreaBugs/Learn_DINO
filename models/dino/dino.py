@@ -259,8 +259,9 @@ class DINO(nn.Module):
                 poss.append(pos_l)
         # 以上的处理与Deformable DETR相同 -------------------------------------------------------------------------------------------------------------
 
-        # dn_number 100哥CDN 生成噪声的代码 -------------------------------------------------------------------------------------------------------------
+        # dn_number 100个CDN 生成噪声的代码 -------------------------------------------------------------------------------------------------------------
         if self.dn_number > 0 or targets is not None:  # 100 > 0
+            # torch.Size([2, 200, 256]) torch.Size([2, 200, 4]) torch.Size([1100, 1100])
             input_query_label, input_query_bbox, attn_mask, dn_meta =\
                 prepare_for_cdn(dn_args=(targets, self.dn_number, self.dn_label_noise_ratio, self.dn_box_noise_scale),
                                 training=self.training, num_queries=self.num_queries, num_classes=self.num_classes,
@@ -512,8 +513,8 @@ class SetCriterion(nn.Module):
             for i in range(len(targets)):
                 if len(targets[i]['labels']) > 0:
                     t = torch.range(0, len(targets[i]['labels']) - 1).long().cuda()
-                    t = t.unsqueeze(0).repeat(scalar, 1)
-                    tgt_idx = t.flatten()
+                    t = t.unsqueeze(0).repeat(scalar, 1)  # torch.Size([33, 1])
+                    tgt_idx = t.flatten()  # torch.Size([33])
                     output_idx = (torch.tensor(range(scalar)) * single_pad).long().cuda().unsqueeze(1) + t
                     output_idx = output_idx.flatten()
                 else:
@@ -633,7 +634,7 @@ class SetCriterion(nn.Module):
         output_known_lbs_bboxes = dn_meta['output_known_lbs_bboxes']
         num_dn_groups,pad_size=dn_meta['num_dn_group'],dn_meta['pad_size']
         assert pad_size % num_dn_groups==0
-        single_pad=pad_size//num_dn_groups
+        single_pad=pad_size // num_dn_groups
 
         return output_known_lbs_bboxes,single_pad,num_dn_groups
 

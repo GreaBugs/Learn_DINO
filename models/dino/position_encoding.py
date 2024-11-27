@@ -77,11 +77,11 @@ class PositionEmbeddingSineHW(nn.Module):
         self.scale = scale
 
     def forward(self, tensor_list: NestedTensor):
-        x = tensor_list.tensors
-        mask = tensor_list.mask
+        x = tensor_list.tensors  # torch.Size([2, 256, 10, 11])
+        mask = tensor_list.mask  # torch.Size([2, 10, 11])
         assert mask is not None
         not_mask = ~mask
-        y_embed = not_mask.cumsum(1, dtype=torch.float32)
+        y_embed = not_mask.cumsum(1, dtype=torch.float32)  # torch.Size([2, 10, 11])
         x_embed = not_mask.cumsum(2, dtype=torch.float32)
 
 
@@ -99,9 +99,9 @@ class PositionEmbeddingSineHW(nn.Module):
         dim_ty = self.temperatureH ** (2 * (dim_ty // 2) / self.num_pos_feats)
         pos_y = y_embed[:, :, :, None] / dim_ty
 
-        pos_x = torch.stack((pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4).flatten(3)
-        pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
-        pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
+        pos_x = torch.stack((pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4).flatten(3)  # torch.Size([2, 10, 11, 128])
+        pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)  # torch.Size([2, 10, 11, 128])
+        pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)  # torch.Size([2, 256, 10, 11])
 
 
 

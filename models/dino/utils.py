@@ -15,36 +15,36 @@ from torch import nn
 def gen_encoder_output_proposals(memory:Tensor, memory_padding_mask:Tensor, spatial_shapes:Tensor, learnedwh=None):
     """
     Input:
-        - memory: bs, \sum{hw}, d_model
-        - memory_padding_mask: bs, \sum{hw}
-        - spatial_shapes: nlevel, 2
+        - memory: bs, \sum{hw}, d_model       torch.Size([2, 9350, 256])
+        - memory_padding_mask: bs, \sum{hw}   torch.Size([2, 9350])
+        - spatial_shapes: nlevel, 2           torch.Size([4, 2])
         - learnedwh: 2
     Output:
         - output_memory: bs, \sum{hw}, d_model
         - output_proposals: bs, \sum{hw}, 4
     """
-    N_, S_, C_ = memory.shape
+    N_, S_, C_ = memory.shape  # 2, 9350, 256
     base_scale = 4.0
     proposals = []
     _cur = 0
     for lvl, (H_, W_) in enumerate(spatial_shapes):
-        mask_flatten_ = memory_padding_mask[:, _cur:(_cur + H_ * W_)].view(N_, H_, W_, 1)
-        valid_H = torch.sum(~mask_flatten_[:, :, 0, 0], 1)
-        valid_W = torch.sum(~mask_flatten_[:, 0, :, 0], 1)
+        mask_flatten_ = memory_padding_mask[:, _cur:(_cur + H_ * W_)].view(N_, H_, W_, 1)  # torch.Size([2, 80, 88, 1])
+        valid_H = torch.sum(~mask_flatten_[:, :, 0, 0], 1)  # tensor([80, 72], device='cuda:0')
+        valid_W = torch.sum(~mask_flatten_[:, 0, :, 0], 1)  # tensor([88, 82], device='cuda:0')
 
-        grid_y, grid_x = torch.meshgrid(torch.linspace(0, H_ - 1, H_, dtype=torch.float32, device=memory.device),
-                                        torch.linspace(0, W_ - 1, W_, dtype=torch.float32, device=memory.device))
-        grid = torch.cat([grid_x.unsqueeze(-1), grid_y.unsqueeze(-1)], -1) # H_, W_, 2
+        grid_y, grid_x = torch.meshgrid(torch.linspace(0, H_ - 1, H_, dtype=torch.float32, device=memory.device),  # torch.Size([80, 88])
+                                        torch.linspace(0, W_ - 1, W_, dtype=torch.float32, device=memory.device))  # torch.Size([80, 88])
+        grid = torch.cat([grid_x.unsqueeze(-1), grid_y.unsqueeze(-1)], -1) # H_, W_, 2   torch.Size([80, 88, 2])
 
-        scale = torch.cat([valid_W.unsqueeze(-1), valid_H.unsqueeze(-1)], 1).view(N_, 1, 1, 2)
-        grid = (grid.unsqueeze(0).expand(N_, -1, -1, -1) + 0.5) / scale
+        scale = torch.cat([valid_W.unsqueeze(-1), valid_H.unsqueeze(-1)], 1).view(N_, 1, 1, 2)  # torch.Size([2, 1, 1, 2])
+        grid = (grid.unsqueeze(0).expand(N_, -1, -1, -1) + 0.5) / scale  # torch.Size([80, 88, 2])
 
         if learnedwh is not None:
             wh = torch.ones_like(grid) * learnedwh.sigmoid() * (2.0 ** lvl)
         else:
-            wh = torch.ones_like(grid) * 0.05 * (2.0 ** lvl)
+            wh = torch.ones_like(grid) * 0.05 * (2.0 ** lvl)  # torch.Size([2, 80, 88, 2])
 
-        proposal = torch.cat((grid, wh), -1).view(N_, -1, 4)
+        proposal = torch.cat((grid, wh), -1).view(N_, -1, 4)  # torch.Size([2, 7040, 4])
         proposals.append(proposal)
         _cur += (H_ * W_)
 
