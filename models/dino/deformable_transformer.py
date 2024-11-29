@@ -476,7 +476,7 @@ class DeformableTransformer(nn.Module):
         #########################################################
         # references比hs多一个，hs是6，references是7   hs [bs,all, 256] references [bs,all, 4]
         hs, references = self.decoder(
-            tgt=tgt.transpose(0, 1),  # torch.Size([2, 1100, 256])
+            tgt=tgt.transpose(0, 1),  # torch.Size([2, 1100, 256])   900 + 200
             memory=memory.transpose(0, 1),  # torch.Size([2, 9350, 256])
             memory_key_padding_mask=mask_flatten,  # torch.Size([2, 9350])
             pos=lvl_pos_embed_flatten.transpose(0, 1),  # torch.Size([2, 9350, 256])

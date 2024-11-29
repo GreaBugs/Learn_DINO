@@ -72,18 +72,18 @@ def prepare_for_cdn(dn_args, training, num_queries, num_classes, hidden_dim, lab
         # 标识属于哪个图片 like tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2], device='cuda:0')
         batch_idx = torch.cat([torch.full_like(t['labels'].long(), i) for i, t in enumerate(targets)])
         # 返回一个二维张量，其中每一行都是非零值的索引
-        known_indice = torch.nonzero(unmask_label + unmask_bbox)  # torch.Size([380])
+        known_indice = torch.nonzero(unmask_label + unmask_bbox)  # torch.Size([19, 1])
         # 拉平
-        known_indice = known_indice.view(-1)
+        known_indice = known_indice.view(-1)  # torch.Size([19])
         # 并没有使用
-        known_indice = known_indice.repeat(2 * dn_number, 1).view(-1)
+        known_indice = known_indice.repeat(2 * dn_number, 1).view(-1)  # torch.Size([380])
         # 这三项是gt相关的值
         # (all gt*2*dn_number) 这里的N是bs中所有的gt的数量总和
-        known_labels = labels.repeat(2 * dn_number, 1).view(-1)
+        known_labels = labels.repeat(2 * dn_number, 1).view(-1)  # torch.Size([380])
         # (all gt*2*dn_number)
         known_bid = batch_idx.repeat(2 * dn_number, 1).view(-1)
         # [all gt*2*dn_number, 4]
-        known_bboxs = boxes.repeat(2 * dn_number, 1)
+        known_bboxs = boxes.repeat(2 * dn_number, 1)  # torch.Size([380])
         # 这两个是克隆的
         known_labels_expaned = known_labels.clone()  # torch.Size([380])
         known_bbox_expand = known_bboxs.clone()  # torch.Size([380, 4])
@@ -155,9 +155,9 @@ def prepare_for_cdn(dn_args, training, num_queries, num_classes, hidden_dim, lab
 
         # 这里的known_labels_expaned 已经被添加过随机的噪声了
         # (2*gt count*dn_number) 新的label信息
-        m = known_labels_expaned.long().to('cuda')
+        m = known_labels_expaned.long().to('cuda')  # torch.Size([380])
         # [2*gt count*dn_number, 256]  将label tensor传入label_enc的embedding得到编码后的值
-        input_label_embed = label_enc(m)
+        input_label_embed = label_enc(m)   # torch.Size([380, 256])
         # 对坐标取反函数  对应于特征图上的坐标
         input_bbox_embed = inverse_sigmoid(known_bbox_expand)  # torch.Size([380, 4])
 
@@ -179,7 +179,7 @@ def prepare_for_cdn(dn_args, training, num_queries, num_classes, hidden_dim, lab
             map_known_indice = torch.cat([map_known_indice + single_pad * i for i in range(2 * dn_number)]).long()  # torch.Size([380])
 
         # known_bid 标识属于哪个图片的
-        if len(known_bid):
+        if len(known_bid):  # torch.Size([380])
             # 替换对应的embed input_query_label第一个维度是bs，known_bid是标识的属于哪一个image
             input_query_label[(known_bid.long(), map_known_indice)] = input_label_embed  # torch.Size([2, 200, 256])
 
